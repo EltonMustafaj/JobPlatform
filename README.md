@@ -50,9 +50,9 @@ A mobile job platform application built with React Native, Expo, and Supabase, f
    ```
 
 3. **Set up environment variables**:
-   The `.env` file is already created with your Supabase credentials:
+   Create a `.env` file in the root directory with your Supabase credentials:
    ```
-   EXPO_PUBLIC_SUPABASE_URL=https://opkbkkkonqhnwmqwkbav.supabase.co
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    ```
 
