@@ -13,11 +13,10 @@ import { supabase, Job } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 
-export default function MyJobsScreen() {
+export default function PostedJobsScreen() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const { isDark } = useTheme();
 
     // Dynamic theme colors
@@ -30,46 +29,40 @@ export default function MyJobsScreen() {
     };
 
     useEffect(() => {
-        loadJobs();
+        loadMyJobs();
     }, []);
 
-    const loadJobs = async () => {
+    const loadMyJobs = async () => {
         try {
             const userData = await getCurrentUser();
             if (!userData?.user) return;
 
-            setCurrentUserId(userData.user.id);
+            // Load only jobs posted by current employer with company info
+            const { data: jobsData, error: jobsError } = await supabase
+                .from('jobs')
+                .select('*')
+                .eq('employer_id', userData.user.id)
+                .order('created_at', { ascending: false });
 
-            // Check if user is employer
-            if (userData.profile?.role === 'employer') {
-                // Employers see ALL jobs from all employers
-                const { data: jobsData, error: jobsError } = await supabase
-                    .from('jobs')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+            if (jobsError) throw jobsError;
 
-                if (jobsError) throw jobsError;
+            // Fetch company info separately
+            const { data: companyData, error: companyError } = await supabase
+                .from('companies')
+                .select('company_name, employer_id')
+                .eq('employer_id', userData.user.id)
+                .single();
 
-                // Fetch all companies
-                const { data: companiesData, error: companiesError } = await supabase
-                    .from('companies')
-                    .select('company_name, employer_id');
-
-                // Create a map of employer_id to company_name
-                const companyMap = new Map(
-                    companiesData?.map(c => [c.employer_id, c.company_name]) || []
-                );
-
-                // Merge company data with jobs
-                const enrichedJobs = jobsData?.map(job => ({
-                    ...job,
-                    company_name: companyMap.get(job.employer_id) || 'Kompania'
-                })) || [];
-
-                setJobs(enrichedJobs);
-            }
+            // Merge company data with jobs
+            const enrichedJobs = jobsData?.map(job => ({
+                ...job,
+                company: companyData
+            })) || [];
+            
+            console.log('Company data:', companyData);
+            setJobs(enrichedJobs);
         } catch (error) {
-            console.error('Error loading jobs:', error);
+            console.error('Error loading my jobs:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -78,64 +71,77 @@ export default function MyJobsScreen() {
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadJobs();
+        loadMyJobs();
     };
 
     const renderJobCard = ({ item }: { item: any }) => {
-        const isOwner = currentUserId === item.employer_id;
-        const companyName = item.company_name || 'Kompania';
-        
-        const CardContent = () => (
-            <>
-                <View style={styles.jobHeader}>
-                    <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>
-                        {item.title}
-                    </Text>
-                    <View
-                        style={[
-                            styles.statusBadge,
-                            item.is_active ? styles.statusActive : styles.statusInactive,
-                        ]}
-                    >
-                        <Text
-                            style={[
-                                styles.statusText,
-                                item.is_active ? styles.statusTextActive : styles.statusTextInactive,
-                            ]}
-                        >
-                            {item.is_active ? 'Aktive' : 'Joaktive'}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Always show company name */}
-                <View style={styles.employerInfo}>
-                    <Text style={[styles.employerLabel, { color: colors.textSecondary }]}>
-                        🏢 <Text style={styles.employerName}>{companyName}</Text>
-                    </Text>
-                </View>
-
-                <View style={styles.jobInfo}>
-                    <Text style={[styles.location, { color: colors.textSecondary }]}>{item.location}</Text>
-                    <Text style={[styles.salary, { color: colors.textSecondary }]}>{item.salary}</Text>
-                </View>
-
-                <View style={[styles.jobFooter, { borderTopColor: colors.border }]}>
-                    <Text style={[styles.deadline, { color: colors.textSecondary }]}>
-                        Afati: {new Date(item.deadline).toLocaleDateString()}
-                    </Text>
-                </View>
-            </>
-        );
+        const companyName = item.company?.company_name || 'Kompania Juaj';
         
         return (
             <View
                 style={[
-                    styles.jobCard, 
+                    styles.jobCard,
                     { backgroundColor: colors.cardBackground, borderColor: colors.border }
                 ]}
             >
-                <CardContent />
+                <TouchableOpacity
+                    onPress={() => router.push(`/job-details/${item.id}`)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.jobHeader}>
+                        <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={2}>
+                            {item.title}
+                        </Text>
+                        <View
+                            style={[
+                                styles.statusBadge,
+                                item.is_active ? styles.statusActive : styles.statusInactive,
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.statusText,
+                                    item.is_active ? styles.statusTextActive : styles.statusTextInactive,
+                                ]}
+                            >
+                                {item.is_active ? 'Aktive' : 'Joaktive'}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.companyInfo}>
+                        <Text style={[styles.companyLabel, { color: colors.textSecondary }]}>
+                            🏢 {companyName}
+                        </Text>
+                    </View>
+
+                    <View style={styles.jobInfo}>
+                        <Text style={[styles.location, { color: colors.textSecondary }]}>
+                            📍 {item.location}
+                        </Text>
+                        <Text style={[styles.salary, { color: colors.textSecondary }]}>
+                            💰 {item.salary}
+                        </Text>
+                    </View>
+
+                    <View style={[styles.jobFooter, { borderTopColor: colors.border }]}>
+                        <Text style={[styles.deadline, { color: colors.textSecondary }]}>
+                            Afati: {new Date(item.deadline).toLocaleDateString()}
+                        </Text>
+                        <View style={styles.viewButton}>
+                            <Text style={styles.viewButtonText}>Shiko Aplikantët</Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+
+                {/* Edit button */}
+                <TouchableOpacity
+                    onPress={() => router.push(`/edit-job/${item.id}`)}
+                    style={styles.editButton}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.editButtonText}>✏️ Edito Punën</Text>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -144,7 +150,9 @@ export default function MyJobsScreen() {
         return (
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <ActivityIndicator size="large" color="#0ea5e9" />
-                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Duke ngarkuar punët tuaja...</Text>
+                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                    Duke ngarkuar punët tuaja...
+                </Text>
             </View>
         );
     }
@@ -153,9 +161,12 @@ export default function MyJobsScreen() {
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             {jobs.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Text style={[styles.emptyTitle, { color: colors.text }]}>Asnjë punë e gjetur</Text>
+                    <Text style={styles.emptyEmoji}>📝</Text>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                        Asnjë punë e postuar ende
+                    </Text>
                     <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                        Nuk ka punë të postuara ende
+                        Ju nuk keni postuar asnjë punë ende. Filloni të postoni punën tuaj të parë!
                     </Text>
                     <TouchableOpacity
                         onPress={() => router.push('/(tabs)/post-job')}
@@ -187,24 +198,20 @@ export default function MyJobsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
     },
     loadingContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F9FAFB',
     },
     loadingText: {
         marginTop: 12,
-        color: '#6B7280',
         fontSize: 16,
     },
     listContent: {
         padding: 16,
     },
     jobCard: {
-        backgroundColor: '#fff',
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
@@ -214,7 +221,6 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 3,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
     },
     jobHeader: {
         flexDirection: 'row',
@@ -226,7 +232,6 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#111827',
         marginRight: 8,
     },
     statusBadge: {
@@ -250,17 +255,22 @@ const styles = StyleSheet.create({
     statusTextInactive: {
         color: '#6B7280',
     },
+    companyInfo: {
+        marginBottom: 8,
+    },
+    companyLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     jobInfo: {
         marginBottom: 12,
     },
     location: {
         fontSize: 14,
-        color: '#6B7280',
         marginBottom: 4,
     },
     salary: {
         fontSize: 15,
-        color: '#0ea5e9',
         fontWeight: '600',
     },
     jobFooter: {
@@ -269,11 +279,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
     },
     deadline: {
         fontSize: 13,
-        color: '#6B7280',
         fontWeight: '600',
     },
     viewButton: {
@@ -286,6 +294,19 @@ const styles = StyleSheet.create({
         color: '#0369a1',
         fontSize: 13,
         fontWeight: '700',
+    },
+    editButton: {
+        marginTop: 12,
+        backgroundColor: '#0ea5e9',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    editButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
     },
     emptyContainer: {
         flex: 1,
@@ -300,13 +321,11 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#111827',
         marginBottom: 8,
         textAlign: 'center',
     },
     emptySubtitle: {
         fontSize: 16,
-        color: '#6B7280',
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 24,
@@ -326,16 +345,5 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '700',
         fontSize: 16,
-    },
-    employerInfo: {
-        marginBottom: 8,
-    },
-    employerLabel: {
-        fontSize: 13,
-        fontStyle: 'italic',
-    },
-    employerName: {
-        fontWeight: '600',
-        fontStyle: 'normal',
     },
 });

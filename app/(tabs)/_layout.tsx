@@ -100,6 +100,13 @@ export default function TabLayout() {
           name="my-jobs"
           options={{
             title: 'Të gjitha Punët',
+            tabBarIcon: ({ color }) => <TabBarIcon name="list" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="posted-jobs"
+          options={{
+            title: 'Punët e Mia',
             tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />,
           }}
         />
@@ -168,6 +175,7 @@ export default function TabLayout() {
       <Tabs.Screen name="two" options={{ href: null }} />
       <Tabs.Screen name="my-jobs" options={{ href: null }} />
       <Tabs.Screen name="post-job" options={{ href: null }} />
+      <Tabs.Screen name="posted-jobs" options={{ href: null }} />
     </Tabs>
   );
 }

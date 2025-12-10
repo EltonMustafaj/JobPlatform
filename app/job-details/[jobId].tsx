@@ -257,67 +257,58 @@ export default function JobDetailsScreen() {
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Header Section */}
-                <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
-                    <Text style={[styles.title, { color: colors.text }]}>{job.title}</Text>
+                {/* Single Content Card */}
+                <View style={[styles.singleCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+                    {/* Job Title */}
+                    <Text style={[styles.jobTitle, { color: colors.text }]}>{job.title}</Text>
 
-                    <View style={styles.infoRow}>
-                        <Ionicons name="location-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                        <Text style={[styles.location, { color: colors.textSecondary }]}>{job.location}</Text>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                        <Ionicons name="cash-outline" size={18} color="#0ea5e9" />
-                        <Text style={styles.salary}>{job.salary}</Text>
-                    </View>
-
-                    <View style={styles.badgesRow}>
-                        <View style={styles.typeBadge}>
-                            <Text style={styles.typeBadgeText}>
-                                {getJobTypeLabel(job.job_type)}
-                            </Text>
+                    {/* Job Meta Info */}
+                    <View style={styles.metaContainer}>
+                        <View style={styles.metaRow}>
+                            <Ionicons name="location" size={16} color="#6B7280" />
+                            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{job.location}</Text>
                         </View>
-                        <View style={styles.deadlineBadge}>
-                            <Text style={styles.deadlineText}>
-                                ⏳ {new Date(job.deadline).toLocaleDateString()}
-                            </Text>
+                        <View style={styles.metaRow}>
+                            <Ionicons name="cash" size={16} color="#10B981" />
+                            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{job.salary}</Text>
+                        </View>
+                        <View style={styles.metaRow}>
+                            <Ionicons name="briefcase" size={16} color="#0ea5e9" />
+                            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{getJobTypeLabel(job.job_type)}</Text>
+                        </View>
+                        <View style={styles.metaRow}>
+                            <Ionicons name="time" size={16} color="#F59E0B" />
+                            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{new Date(job.deadline).toLocaleDateString()}</Text>
                         </View>
                     </View>
-                </View>
 
-                {/* Company Info Section */}
-                {company && (
-                    <View style={[styles.companySection, { backgroundColor: colors.cardBackground }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Rreth Kompanise</Text>
-                        <Text style={[styles.companyName, { color: colors.text }]}>{company.company_name}</Text>
+                    {/* Company Badge */}
+                    {company && (
+                        <View style={styles.companyBadge}>
+                            <Ionicons name="business" size={16} color="#fff" />
+                            <Text style={styles.companyBadgeText}>{company.company_name}</Text>
+                        </View>
+                    )}
 
-                        {company.company_location && (
-                            <View style={styles.companyMetaRow}>
-                                <Ionicons name="map-outline" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
-                                <Text style={[styles.companyInfo, { color: colors.textSecondary }]}>{company.company_location}</Text>
+                    {/* Job Description */}
+                    <View style={styles.descriptionHeader}>
+                        <Ionicons name="document-text" size={20} color="#0ea5e9" />
+                        <Text style={[styles.descriptionTitle, { color: colors.text }]}>Përshkrimi i Punës</Text>
+                    </View>
+                    <Text style={[styles.descriptionContent, { color: colors.textSecondary }]}>{safeJobDescription}</Text>
+
+                    {/* Company Info - if exists */}
+                    {company?.company_description && (
+                        <>
+                            <View style={[styles.descriptionHeader, { marginTop: 20 }]}>
+                                <Ionicons name="information-circle" size={20} color="#10B981" />
+                                <Text style={[styles.descriptionTitle, { color: colors.text }]}>Rreth Kompanisë</Text>
                             </View>
-                        )}
-
-                        {company.company_website && (
-                            <TouchableOpacity
-                                style={styles.companyMetaRow}
-                                onPress={() => Linking.openURL(company.company_website!)}
-                            >
-                                <Ionicons name="globe-outline" size={16} color="#0ea5e9" />
-                                <Text style={styles.companyLink}>{company.company_website}</Text>
-                            </TouchableOpacity>
-                        )}
-
-                        {company.company_description && (
-                            <Text style={[styles.companyDescription, { color: colors.textSecondary }]}>{safeCompanyDescription}</Text>
-                        )}
-                    </View>
-                )}
-
-                {/* Description Section */}
-                <View style={[styles.descriptionSection, { backgroundColor: colors.cardBackground }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Pershkrimi i Punes</Text>
-                    <Text style={[styles.description, { color: colors.textSecondary }]}>{safeJobDescription}</Text>
+                            <Text style={[styles.descriptionContent, { color: colors.textSecondary }]} numberOfLines={3}>
+                                {safeCompanyDescription}
+                            </Text>
+                        </>
+                    )}
                 </View>
             </ScrollView>
 
@@ -463,136 +454,68 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
     },
-    header: {
-        backgroundColor: '#fff',
+    singleCard: {
+        margin: 16,
+        borderRadius: 20,
         padding: 24,
-        marginBottom: 12,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 5,
+        borderWidth: 1,
     },
-    title: {
-        fontSize: 28,
+    jobTitle: {
+        fontSize: 26,
         fontWeight: '800',
-        color: '#111827',
-        marginBottom: 16,
-        lineHeight: 36,
+        marginBottom: 20,
+        lineHeight: 34,
     },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    location: {
-        fontSize: 16,
-        color: '#6B7280',
-        marginLeft: 6,
-    },
-    salary: {
-        fontSize: 20,
-        color: '#0ea5e9',
-        fontWeight: '700',
-        marginLeft: 6,
-    },
-    badgesRow: {
+    metaContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
-        marginTop: 16,
+        gap: 16,
+        marginBottom: 24,
     },
-    typeBadge: {
-        backgroundColor: '#E0F2FE',
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 100,
-        borderWidth: 1,
-        borderColor: '#BAE6FD',
-    },
-    typeBadgeText: {
-        color: '#0284C7',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    deadlineBadge: {
-        backgroundColor: '#FEF3C7',
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 100,
-        borderWidth: 1,
-        borderColor: '#FDE68A',
-    },
-    deadlineText: {
-        color: '#B45309',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    companySection: {
-        backgroundColor: '#fff',
-        padding: 24,
-        marginBottom: 12,
-        borderRadius: 16,
-        marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    companyName: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 12,
-    },
-    companyMetaRow: {
+    metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        gap: 8,
     },
-    companyInfo: {
+    metaText: {
         fontSize: 15,
-        color: '#6B7280',
-        marginLeft: 8,
+        fontWeight: '500',
     },
-    companyLink: {
-        fontSize: 15,
-        color: '#0ea5e9',
-        marginLeft: 8,
-        textDecorationLine: 'underline',
-    },
-    companyDescription: {
-        fontSize: 15,
-        color: '#4B5563',
-        lineHeight: 24,
-        marginTop: 12,
-    },
-    descriptionSection: {
-        backgroundColor: '#fff',
-        padding: 24,
-        paddingBottom: 40,
-        marginHorizontal: 16,
+    companyBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        gap: 10,
+        backgroundColor: '#0ea5e9',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
         marginBottom: 24,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 8,
-        elevation: 2,
     },
-    sectionTitle: {
+    companyBadgeText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    descriptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 14,
+    },
+    descriptionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#111827',
-        marginBottom: 16,
     },
-    description: {
+    descriptionContent: {
         fontSize: 16,
-        color: '#374151',
-        lineHeight: 28,
+        lineHeight: 26,
+        letterSpacing: 0.2,
     },
     applyContainer: {
         padding: 20,
