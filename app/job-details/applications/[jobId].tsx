@@ -17,6 +17,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase, Profile } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { normalizeUrl } from '@/lib/sanitize';
 
 type Application = {
     id: string;
@@ -412,7 +413,16 @@ export default function ApplicationsListScreen() {
                                     </Text>
                                     <TouchableOpacity
                                         style={styles.cvButton}
-                                        onPress={() => Linking.openURL(selectedApplication.cv_url!)}
+                                        onPress={async () => {
+                                            try {
+                                                const url = normalizeUrl(selectedApplication.cv_url);
+                                                if (url) {
+                                                    await Linking.openURL(url);
+                                                }
+                                            } catch (error: any) {
+                                                Alert.alert('Error', 'Nuk mund te hapet CV-ja: ' + error.message);
+                                            }
+                                        }}
                                     >
                                         <Ionicons name="document-text" size={24} color="#0ea5e9" />
                                         <Text style={styles.cvButtonText}>Shiko CV-në</Text>

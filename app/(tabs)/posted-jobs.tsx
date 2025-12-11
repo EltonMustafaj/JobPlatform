@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { supabase, Job } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { subscribeToJobRefresh } from '@/lib/jobRefresh';
 
 export default function PostedJobsScreen() {
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -30,6 +31,13 @@ export default function PostedJobsScreen() {
 
     useEffect(() => {
         loadMyJobs();
+        
+        // Subscribe për auto-refresh kur krijohet/updatohet një punë
+        const unsubscribe = subscribeToJobRefresh(() => {
+            loadMyJobs();
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     const loadMyJobs = async () => {

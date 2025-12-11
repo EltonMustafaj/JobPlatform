@@ -12,6 +12,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Company } from '@/lib/supabase';
+import { normalizeUrl } from '@/lib/sanitize';
 
 interface EditCompanyModalProps {
     visible: boolean;
@@ -52,11 +53,12 @@ export default function EditCompanyModal({ visible, onClose, onSave, company }: 
 
         try {
             setLoading(true);
+            const sanitizedWebsite = normalizeUrl(website);
             await onSave({
                 company_name: name,
                 company_location: location,
                 company_phone: phone,
-                company_website: website,
+                company_website: sanitizedWebsite,
                 industry: industry,
                 employee_count: employeeCount,
                 founded_year: foundedYear,

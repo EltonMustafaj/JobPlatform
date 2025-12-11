@@ -25,7 +25,9 @@ export default function TabLayout() {
   useEffect(() => {
     if (userRole === 'job_seeker') {
       loadUnreadNotifications();
+      
       // Set up real-time subscription for notifications
+      // Note: If you get pg_net errors, this can be disabled temporarily
       const channel = supabase
         .channel('notifications')
         .on('postgres_changes', 
@@ -38,7 +40,11 @@ export default function TabLayout() {
             loadUnreadNotifications();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('Realtime subscription error - notifications will use polling instead');
+          }
+        });
 
       return () => {
         supabase.removeChannel(channel);

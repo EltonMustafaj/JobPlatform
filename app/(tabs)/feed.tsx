@@ -16,6 +16,7 @@ import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '@/constants
 import { getThemeColors } from '@/constants/Theme';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { sanitize } from '@/lib/sanitize';
+import { subscribeToJobRefresh } from '@/lib/jobRefresh';
 
 // New Components
 import SearchBar from '@/components/SearchBar';
@@ -57,6 +58,13 @@ export default function FeedScreen() {
             }
         };
         fetchLocations();
+        
+        // 🔄 Subscribe për auto-refresh kur krijohet/updatohet/fshihet një punë
+        const unsubscribe = subscribeToJobRefresh(() => {
+            jobsQuery.refetch();
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     // Load jobs with pagination and filters

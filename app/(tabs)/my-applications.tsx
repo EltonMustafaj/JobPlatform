@@ -10,6 +10,7 @@ import {
 import { supabase, Application, Job } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { subscribeToJobRefresh } from '@/lib/jobRefresh';
 
 type ApplicationWithJob = Application & {
     jobs: Job;
@@ -32,6 +33,13 @@ export default function MyApplicationsScreen() {
 
     useEffect(() => {
         loadApplications();
+        
+        // 🔄 Subscribe për auto-refresh kur krijohet/updatohet/fshihet një punë
+        const unsubscribe = subscribeToJobRefresh(() => {
+            loadApplications();
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     const loadApplications = async () => {

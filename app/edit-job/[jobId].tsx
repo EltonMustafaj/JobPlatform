@@ -15,6 +15,7 @@ import { supabase, JobType } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { triggerJobRefresh } from '@/lib/jobRefresh';
 
 export default function EditJobScreen() {
     const { jobId } = useLocalSearchParams<{ jobId: string }>();
@@ -95,6 +96,9 @@ export default function EditJobScreen() {
                 .eq('employer_id', userData.user.id);
 
             if (error) throw error;
+
+            // 🔄 Trigger refresh për të gjitha listat
+            await triggerJobRefresh();
 
             Alert.alert('Sukses', 'Puna u perditesua me sukses!', [
                 { text: 'Ne rregull', onPress: () => router.back() },

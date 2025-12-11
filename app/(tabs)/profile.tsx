@@ -21,6 +21,7 @@ import EditCompanyModal from '@/components/EditCompanyModal';
 import CVUploadModal from '@/components/CVUploadModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Colors } from '@/constants/Theme';
+import { normalizeUrl as normalizeUrlUtil } from '@/lib/sanitize';
 
 export default function ProfileScreen() {
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -48,18 +49,31 @@ export default function ProfileScreen() {
     }, []);
 
     const handleOpenLink = async (url: string) => {
+        console.log('🔗 [DEBUG] Original URL:', url);
+        let normalizedUrl = '';
         try {
-            const cleanUrl = url.trim();
-            const supported = await Linking.canOpenURL(cleanUrl);
-
-            if (supported) {
-                await Linking.openURL(cleanUrl);
-            } else {
-                Alert.alert('Error', 'Nuk mund te hapet ky link: ' + cleanUrl);
+            normalizedUrl = normalizeUrlUtil(url);
+            console.log('✅ [DEBUG] Normalized URL:', normalizedUrl);
+            
+            if (!normalizedUrl) {
+                console.log('❌ [DEBUG] URL is null after normalization');
+                Alert.alert('Error', 'Linku nuk eshte i vlefshem.');
+                return;
             }
-        } catch (error) {
-            console.error('Error opening link:', error);
-            Alert.alert('Error', 'Ndodhi nje gabim gjate hapjes se linkut.');
+
+            // Skip canOpenURL check - it has issues with .net domains
+            // Just try to open directly and catch errors
+            console.log('🚀 [DEBUG] Opening URL directly...');
+            await Linking.openURL(normalizedUrl);
+            
+        } catch (error: any) {
+            console.error('❌ [DEBUG] Error opening link:', error);
+            // Provide more helpful error message
+            if (error.message?.includes('schema') || error.message?.includes('net')) {
+                Alert.alert('Error', 'Nuk mund te hapet ky link. Provoni ta kopjoni manualisht: ' + normalizedUrl);
+            } else {
+                Alert.alert('Error', 'Ndodhi nje gabim gjate hapjes se linkut.');
+            }
         }
     };
 
@@ -73,6 +87,7 @@ export default function ProfileScreen() {
                 if (userData.profile.role === 'employer') {
                     try {
                         const companyData = await getCompany(userData.profile.id);
+                        console.log('🏢 [DEBUG] Company data loaded:', companyData?.company_name, 'Website:', companyData?.company_website);
                         if (companyData) setCompany(companyData);
                     } catch (error) {
                         console.log('No company found or error fetching company');

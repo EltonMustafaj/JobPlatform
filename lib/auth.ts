@@ -1,4 +1,5 @@
 import { supabase, UserRole } from './supabase';
+import { normalizeUrl } from './sanitize';
 
 export interface SignUpData {
     email: string;
@@ -125,6 +126,15 @@ export async function getCompany(employerId: string) {
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         throw error;
     }
+    
+    // Normalize URL when reading from database (defensive programming)
+    if (data && data.company_website) {
+        console.log('🔧 [DEBUG] Raw company_website from DB:', data.company_website);
+        const normalized = normalizeUrl(data.company_website);
+        console.log('🔧 [DEBUG] Normalized company_website:', normalized);
+        data.company_website = normalized ?? data.company_website;
+    }
+    
     return data;
 }
 
@@ -144,6 +154,11 @@ export async function upsertCompany(companyData: {
 }) {
     console.log('Upserting company:', companyData);
 
+    const sanitizedData = {
+        ...companyData,
+        company_website: normalizeUrl(companyData.company_website) ?? null,
+    };
+
     // Check if company exists
     const existing = await getCompany(companyData.employer_id);
 
@@ -152,7 +167,7 @@ export async function upsertCompany(companyData: {
         // Update
         result = await supabase
             .from('companies')
-            .update(companyData)
+            .update(sanitizedData)
             .eq('employer_id', companyData.employer_id)
             .select()
             .single();
@@ -160,7 +175,7 @@ export async function upsertCompany(companyData: {
         // Insert
         result = await supabase
             .from('companies')
-            .insert([companyData])
+            .insert([sanitizedData])
             .select()
             .single();
     }

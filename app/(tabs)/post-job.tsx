@@ -17,6 +17,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '@/contexts/ThemeContext';
+import { triggerJobRefresh } from '@/lib/jobRefresh';
 
 export default function PostJobScreen() {
     const [title, setTitle] = useState('');
@@ -142,6 +143,7 @@ export default function PostJobScreen() {
     };
 
     const handlePostJob = async () => {
+        console.log('📝 [DEBUG] Starting job post...');
         if (!title || !description || !location || !salary) {
             Alert.alert('Kujdes', 'Ju lutem plotesoni te gjitha fushat e detyrueshme (*)');
             return;
@@ -154,41 +156,73 @@ export default function PostJobScreen() {
 
         setLoading(true);
         try {
+            console.log('👤 [DEBUG] Getting current user...');
             const userData = await getCurrentUser();
             if (!userData?.user) {
                 throw new Error('Ju duhet te jeni te kycur per te postuar pune');
             }
 
             const finalDeadline = calculateDeadline();
+            console.log('💾 [DEBUG] Inserting job to DB using RPC...');
 
-            const { data: newJob, error } = await supabase.from('jobs').insert({
-                employer_id: userData.user.id,
-                title,
-                description,
-                location,
-                salary,
-                job_type: jobType,
-                deadline: finalDeadline,
-                is_active: true,
-            }).select().single();
+            // Use the insert_job function to bypass the "schema net" error
+            const { data: newJobData, error } = await supabase.rpc('insert_job', {
+                p_employer_id: userData.user.id,
+                p_title: title,
+                p_description: description,
+                p_location: location,
+                p_salary: salary,
+                p_job_type: jobType,
+                p_deadline: finalDeadline,
+                p_is_active: true,
+            });
 
-            if (error) throw error;
+            if (error) {
+                console.log('❌ [DEBUG] RPC Error:', error);
+                throw error;
+            }
+
+            // newJobData is an array with one item
+            const newJob = Array.isArray(newJobData) ? newJobData[0] : newJobData;
+            console.log('✅ [DEBUG] Job created:', newJob?.id);
 
             // Check for matching job alerts and create notifications
             if (newJob) {
+                console.log('🔔 [DEBUG] Checking job alerts...');
                 await checkAndNotifyAlerts(newJob);
+                console.log('✅ [DEBUG] Alerts checked');
             }
 
-            Toast.show({
-                type: 'success',
-                text1: 'Sukses',
-                text2: 'Puna u postua me sukses!',
-                position: 'bottom',
-            });
+            // 🔄 Trigger refresh për të gjitha listat
+            console.log('🔄 [DEBUG] Triggering job refresh...');
+            await triggerJobRefresh();
 
-            setTimeout(() => {
-                router.back();
-            }, 1500);
+            console.log('🎉 [DEBUG] Showing success alert...');
+            Alert.alert(
+                'Sukses',
+                'Puna u postua me sukses!',
+                [{ 
+                    text: 'OK', 
+                    onPress: () => {
+                        console.log('🔙 [DEBUG] Navigating back...');
+                        router.back();
+                    }
+                }]
+            );
+
+            // COMMENTED OUT TOAST - Testing if this causes the issue
+            // Toast.show({
+            //     type: 'success',
+            //     text1: 'Sukses',
+            //     text2: 'Puna u postua me sukses!',
+            //     position: 'bottom',
+            // });
+
+            // console.log('⏱️ [DEBUG] Waiting before navigation...');
+            // setTimeout(() => {
+            //     console.log('🔙 [DEBUG] Navigating back...');
+            //     router.back();
+            // }, 1500);
 
             // Reset form
             setTitle('');
@@ -199,6 +233,7 @@ export default function PostJobScreen() {
             setDeadlineDays('30');
             setDeadlineDate(new Date().toISOString().split('T')[0]);
         } catch (error: any) {
+            console.log('❌ [DEBUG] Error in handlePostJob:', error);
             Alert.alert('Gabim', error.message || 'Ndodhi nje gabim gjate postimit');
         } finally {
             setLoading(false);

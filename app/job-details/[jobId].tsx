@@ -18,6 +18,7 @@ import { pickDocument, uploadCV } from '@/lib/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { sanitize } from '@/lib/sanitize';
+import { triggerJobRefresh } from '@/lib/jobRefresh';
 
 const { width } = Dimensions.get('window');
 
@@ -56,9 +57,16 @@ export default function JobDetailsScreen() {
                 .from('jobs')
                 .select('*')
                 .eq('id', jobId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
+            
+            if (!jobData) {
+                Alert.alert('Error', 'Puna nuk u gjet');
+                router.back();
+                return;
+            }
+            
             setJob(jobData);
 
             // Load company info
@@ -95,7 +103,7 @@ export default function JobDetailsScreen() {
                 .select('id')
                 .eq('job_id', jobId)
                 .eq('applicant_id', userData.user.id)
-                .single();
+                .maybeSingle();
 
             if (data) {
                 setHasApplied(true);
@@ -219,6 +227,9 @@ export default function JobDetailsScreen() {
                                 .eq('employer_id', userData.user.id);
 
                             if (error) throw error;
+
+                            // 🔄 Trigger refresh për të gjitha listat
+                            await triggerJobRefresh();
 
                             Alert.alert('Sukses', 'Puna u fshi me sukses');
                             router.back();
